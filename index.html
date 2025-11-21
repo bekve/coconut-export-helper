@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Kalkulator Biaya Ekspor Kelapa</title>
+</head>
+
+<body>
+    <h2>Kalkulator Biaya Ekspor Kelapa</h2>
+
+    <form id="calcForm">
+        <label>Berat (Ton):</label>
+        <input type="number" id="weightTon" required><br><br>
+
+        <label>Harga per Ton:</label>
+        <input type="number" id="pricePerTon" required><br><br>
+
+        <label>Biaya Trucking:</label>
+        <input type="number" id="trucking" required><br><br>
+
+        <label>Biaya Handling:</label>
+        <input type="number" id="handling" required><br><br>
+
+        <label>Biaya Freight:</label>
+        <input type="number" id="freight" required><br><br>
+
+        <button type="submit">Hitung</button>
+    </form>
+
+    <h3>Hasil:</h3>
+    <button id="pdfBtn" style="margin-top: 10px; display:none;">
+        Download PDF
+    </button>
+
+    <pre id="result"></pre>
+
+    <script>
+        const form = document.getElementById("calcForm");
+        const resultBox = document.getElementById("result");
+        const pdfBtn = document.getElementById("pdfBtn");
+
+        let lastResult = null;
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const data = {
+                weightTon: Number(document.getElementById("weightTon").value),
+                pricePerTon: Number(document.getElementById("pricePerTon").value),
+                trucking: Number(document.getElementById("trucking").value),
+                handling: Number(document.getElementById("handling").value),
+                freight: Number(document.getElementById("freight").value),
+            };
+
+            const res = await fetch("http://localhost:3000/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const json = await res.json();
+            lastResult = json;
+
+            resultBox.innerText = JSON.stringify(json, null, 2);
+
+            // Munculkan tombol PDF
+            pdfBtn.style.display = "inline-block";
+        });
+
+        // Tombol PDF
+        pdfBtn.addEventListener("click", async () => {
+            if (!lastResult) return;
+
+            const res = await fetch("http://localhost:3000/generate-pdf", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ result: lastResult })
+            });
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "laporan-biaya-ekspor.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        });
+    </script>
+
+</body>
+
+</html>
